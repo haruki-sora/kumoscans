@@ -62,7 +62,7 @@ a{color:inherit}
 @media (prefers-reduced-motion: reduce){.site-header{transition:none}.site-header.is-hidden{transform:none;opacity:1}}
 .header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 0}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg);font-weight:800;letter-spacing:.2px;font-size:24px}
-.brand img{width:40px;height:40px;border-radius:10px;box-shadow:var(--shadow)}
+.brand img{width:60px;height:60px;border-radius:10px;box-shadow:var(--shadow)}
 .nav{display:none;gap:12px;align-items:center}
 #desktop-nav{display:flex}
 .header-menu{display:none}
@@ -83,19 +83,96 @@ a{color:inherit}
 @keyframes slideDown{from{transform:translateY(-8px);opacity:0}to{transform:translateY(0);opacity:1}}
 
 /* -------- Grid (Homepage) -------- */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px;margin:18px 0 24px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;text-decoration:none;color:var(--fg);display:flex;flex-direction:column;box-shadow:var(--shadow);transform:translateZ(0)}
-.cover{aspect-ratio:3/4;object-fit:cover;filter:saturate(1.02)}
-.card-body{padding:12px 12px 14px}
-.card .title{font-size:16px;margin:6px 0 4px}
-.card .meta{font-size:12px;color:var(--muted)}
-.card:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,.14)}
-.card:hover .cover{filter:saturate(1.08)}
-.filters{margin-top:6px}
-.chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:inline-block;padding:7px 12px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--fg);text-decoration:none;transition:filter .15s, transform .12s}
-.chip:hover{filter:brightness(1.05);transform:translateY(-1px)}
-.chip.active{outline:2px solid var(--brand)}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:18px;
+  margin:18px 0 24px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  text-decoration:none;
+  color:var(--fg);
+  display:flex;
+  flex-direction:column;
+  box-shadow:var(--shadow);
+  transform:translateZ(0) translateY(0);
+  /* smoother hover */
+  transition:
+    transform 220ms cubic-bezier(.22,.61,.36,1),
+    box-shadow 220ms cubic-bezier(.22,.61,.36,1),
+    filter 200ms ease-out;
+  will-change:transform, box-shadow;
+}
+
+.cover{
+  aspect-ratio:3/4;
+  object-fit:cover;
+  filter:saturate(1.02);
+}
+
+.card-body{
+  padding:12px 12px 14px;
+}
+
+.card .title{
+  font-size:16px;
+  margin:6px 0 4px;
+}
+
+.card .meta{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.card:hover{
+  transform:translateY(-4px) scale(1.02);
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+}
+
+.card:hover .cover{
+  filter:saturate(1.08);
+}
+
+/* optional: small "press" effect */
+.card:active{
+  transform:translateY(-1px) scale(.99);
+  box-shadow:0 6px 20px rgba(0,0,0,.2);
+}
+
+.filters{
+  margin-top:6px;
+}
+
+.chips{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.chip{
+  display:inline-block;
+  padding:7px 12px;
+  border-radius:999px;
+  background:var(--chip);
+  border:1px solid var(--border);
+  color:var(--fg);
+  text-decoration:none;
+  transition:filter .15s, transform .12s;
+}
+
+.chip:hover{
+  filter:brightness(1.05);
+  transform:translateY(-1px);
+}
+
+.chip.active{
+  outline:2px solid var(--brand);
+}
 
 /* -------- Manga Detail -------- */
 .manga-hero{display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:start;margin:24px 0}
