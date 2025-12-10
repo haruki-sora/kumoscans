@@ -214,6 +214,11 @@ a{color:inherit}
   flex-shrink:0;
 }
 
+.chapter-meta{
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+}
 
 /* -------- Reader -------- */
 .reader-header,.reader-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 0}

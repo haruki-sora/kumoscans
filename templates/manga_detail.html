@@ -61,6 +61,13 @@
             {{ ch.display_title }}
           </span>
         </div>
+
+        <span class="chapter-meta">
+          {{ ch.pages|length }} pages
+          {% if ch.updated is defined %}
+            · {{ naturaltime(ch.updated) }}
+          {% endif %}
+        </span>
       </a>
     </li>
   {% endfor %}
