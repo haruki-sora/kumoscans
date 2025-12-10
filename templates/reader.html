@@ -25,17 +25,6 @@
       <strong class="ri-chapter">{{ chapter.display_title }}</strong>
     </div>
 
-    {% if prev_ch or next_ch %}
-    <div class="fab-nav" aria-label="Chapter navigation">
-      {% if prev_ch %}
-      <a class="fab-btn prev" href="{{ url_for('reader', slug=manga.slug, chapter_slug=prev_ch.slug) }}" title="Previous chapter (←)">⟵</a>
-      {% endif %}
-      {% if next_ch %}
-      <a class="fab-btn next" href="{{ url_for('reader', slug=manga.slug, chapter_slug=next_ch.slug) }}" title="Next chapter (→)">⟶</a>
-      {% endif %}
-    </div>
-    {% endif %}
-
     <div class="pages" id="pages">
       {% for p in chapter.pages %}
         <figure

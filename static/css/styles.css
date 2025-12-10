@@ -200,6 +200,20 @@ a{color:inherit}
 .chapter-link{display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--border);padding:12px 14px;border-radius:12px;transition:transform .1s, background .15s}
 .chapter-link:hover{ transform:translateX(2px); background:linear-gradient(180deg,rgba(124,58,237,.06),transparent); -webkit-transform:translateX(2px); -moz-transform:translateX(2px); -ms-transform:translateX(2px); -o-transform:translateX(2px); }
 .ch-title{font-weight:700}
+.chapter-main{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.chapter-thumb{
+  width:60px;
+  height:80px;
+  border-radius:8px;
+  object-fit:cover;
+  flex-shrink:0;
+}
+
 
 /* -------- Reader -------- */
 .reader-header,.reader-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 0}
