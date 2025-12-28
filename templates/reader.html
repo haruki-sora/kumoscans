@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Read {{ manga.title }} — {{ chapter.display_title }} | Kumo Scans{% endblock %}
+{% block content %}
+    <article
+    class="reader {% if manga.is_manhwa %}reader--manhwa{% else %}reader--manga{% endif %}{% if prev_ch or next_ch %} has-sticky{% endif %}"
+    data-slug="{{ manga.slug }}"
+    data-chapter="{{ chapter.slug }}"
+  >
+
+    <header class="reader-header">
+      <div class="nav">
+        {% if prev_ch %}
+          <a class="btn" href="{{ url_for('reader', slug=manga.slug, chapter_slug=prev_ch.slug) }}">⟵ Prev</a>
+        {% endif %}
+        {% if next_ch %}
+          <a class="btn" href="{{ url_for('reader', slug=manga.slug, chapter_slug=next_ch.slug) }}">Next ⟶</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Sticky, centered title/chapter pill -->
+    <div class="reader-info">
+      <a class="ri-title" href="{{ url_for('manga_detail', slug=manga.slug) }}">{{ manga.title }}</a>
+      <span class="ri-sep">/</span>
+      <strong class="ri-chapter">{{ chapter.display_title }}</strong>
+    </div>
+
+    <div class="pages" id="pages">
+      {% for p in chapter.pages %}
+        <figure
+          class="page {% if manga.is_manhwa %}page--manhwa{% else %}page--manga{% endif %}"
+          data-index="{{ loop.index }}"
+        >
+          <img src="{{ p.url }}" alt="Page {{ loop.index }}" loading="lazy" />
+          {% if not manga.is_manhwa %}
+            <div class="page-num">{{ loop.index }} / {{ chapter.pages|length }}</div>
+          {% endif %}
+        </figure>
+      {% endfor %}
+    </div>
+
+    {# End-of-chapter card #}
+    <div class="reader-end-card" id="reader-end-card">
+      <div class="reader-end-inner">
+        <p class="end-label">You’ve reached the end of {{ chapter.display_title }}</p>
+        <div class="end-actions">
+          {% if prev_ch %}
+          <a class="btn" href="{{ url_for('reader', slug=manga.slug, chapter_slug=prev_ch.slug) }}">‹ Prev</a>
+          {% endif %}
+
+          {# Show only on first or last chapter (no prev OR no next) #}
+          {% if not prev_ch or not next_ch %}
+          <a class="btn" href="{{ url_for('manga_detail', slug=manga.slug) }}">« Details »</a>
+          {% endif %}
+
+          {% if next_ch %}
+          <a class="btn" href="{{ url_for('reader', slug=manga.slug, chapter_slug=next_ch.slug) }}">Next ›</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Tiny floating scroll buttons (bottom-right) #}
+    <div class="reader-scroll-tools" id="reader-scroll-tools">
+      <button class="scroll-btn scroll-btn--top" type="button" aria-label="Back to top">↑</button>
+      <button class="scroll-btn scroll-btn--bottom" type="button" aria-label="Scroll to bottom">↓</button>
+    </div>
+
+    <footer class="reader-footer">
+      <div class="nav">
+        {% if prev_ch %}
+          <a class="btn" href="{{ url_for('reader', slug=manga.slug, chapter_slug=prev_ch.slug) }}">⟵ Prev</a>
+        {% endif %}
+        <a class="btn" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">Back to Top</a>
+        {% if next_ch %}
+          <a class="btn" href="{{ url_for('reader', slug=manga.slug, chapter_slug=next_ch.slug) }}">Next ⟶</a>
+        {% endif %}
+      </div>
+    </footer>
+  </>
+
+  <script defer src="{{ url_for('static', filename='js/reader.js') }}"></script>
+{% endblock %}

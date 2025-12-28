@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}{{ manga.title }} | Kumo Scans{% endblock %}
+{% block content %}
+
+<section class="manga-hero">
+  <img class="manga-cover" src="{{ manga.cover_url }}" alt="{{ manga.title }} cover" />
+  <div>
+    <h1 class="title">{{ manga.title }}</h1>
+    <p class="muted">
+      by <strong>{{ manga.author }}</strong>
+      · art <strong>{{ manga.artist }}</strong>
+      · <em>{{ manga.status }}</em>
+    </p>
+
+    {% if manga.tags %}
+    <div class="tags" style="margin:8px 0 10px;">
+      {% for t in manga.tags %}
+        <span class="tag">{{ t }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if manga.description %}
+      <div class="description">
+        {{ manga.description | md }}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<hr style="border:0;border-top:1px solid var(--border);opacity:.7;margin:12px 0 6px" />
+
+<!-- Chapter sort control -->
+<form class="sort-bar" method="get" action="{{ url_for('manga_detail', slug=manga.slug) }}"
+      style="margin:6px 0 10px; display:flex; gap:8px; align-items:center;">
+  <label for="sort" class="muted">Sort: </label>
+  <select id="sort" name="sort" onchange="this.form.submit()"
+          style="background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 10px;">
+    <option value="number_desc"  {{ 'selected' if sort=='number_desc'  else '' }}>Chapter (Descending)</option>
+    <option value="number_asc"   {{ 'selected' if sort=='number_asc'   else '' }}>Chapter (Ascending)</option>
+    <option value="updated_desc" {{ 'selected' if sort=='updated_desc' else '' }}>Updated (Newest)</option>
+    <option value="updated_asc"  {{ 'selected' if sort=='updated_asc'  else '' }}>Updated (Oldest)</option>
+  </select>
+</form>
+
+<h2>Chapters</h2>
+<ul class="chapters">
+  {% for ch in chapters %}
+    <li>
+      <a class="chapter-link" href="{{ url_for('reader', slug=manga.slug, chapter_slug=ch.slug) }}">
+        <div class="chapter-main">
+          {% if ch.pages %}
+            <img
+              class="chapter-thumb"
+              src="{{ ch.pages[0].url }}"
+              alt="Preview page for {{ ch.display_title }}"
+              loading="lazy"
+            >
+          {% endif %}
+          <span class="ch-title">
+            {{ ch.display_title }}
+          </span>
+        </div>
+
+        <span class="chapter-meta">
+          {{ ch.pages|length }} pages
+          {% if ch.updated is defined %}
+            · {{ naturaltime(ch.updated) }}
+          {% endif %}
+        </span>
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
