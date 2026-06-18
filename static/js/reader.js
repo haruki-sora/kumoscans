@@ -1,11 +1,10 @@
 // Kumo Scans — Reader script
 // - Sticky info pill offset (tracks header auto-hide)
-// - Tap/Click anywhere on reading surface toggles header + info pill
+// - Tap/Click anywhere on reading surface toggles the whole UI (header + bottom bar + pill)
 // - Scroll position restore/save per chapter
-// - Keyboard nav (←/→, Space/PageDown, T)
+// - Keyboard nav (←/→, Space/PageDown, T, H)
+// - Chapter-jump dropdown in the bottom bar
 // - Preload upcoming pages
-// - Floating FABs + sticky bar idle fade
-// - End-of-chapter card (Option 2)
 // - Tiny floating scroll buttons
 
 (function () {
@@ -22,8 +21,9 @@
   // ---------- Helpers ----------
   function isInteractive(el) {
     return !!(
-      el.closest("a, button, input, textarea, select, label, .reader-header, .site-header, .sticky-bar, .fab-btn, .nav, .page-num") ||
-      el.closest(".reader-end-card, #reader-end-card") ||
+      el.closest("a, button, input, textarea, select, label, .site-header, .reader-info") ||
+      el.closest(".reader-bottombar, #reader-bottombar") ||
+      el.closest(".reader-end, #reader-end") ||
       el.closest(".reader-scroll-tools, .scroll-btn, #reader-scroll-tools")
     );
   }
@@ -31,8 +31,8 @@
   function setHeaderHidden(hidden) {
     if (!header) return;
     header.classList.toggle("is-hidden", !!hidden);
-    root.classList.toggle("header-hidden", !!hidden);
-    updateOffset(); // keep sticky pill in the right place
+    root.classList.toggle("header-hidden", !!hidden); // bottom bar + pill follow this class
+    updateOffset();
   }
 
   function updateOffset() {
@@ -42,21 +42,15 @@
     root.style.setProperty("--header-offset", hidden ? "0px" : (h + "px"));
   }
 
-  // NEW: helper to detect "top of page"
   function nearTop() {
     return (window.scrollY || document.documentElement.scrollTop || 0) < 64;
   }
 
-  // NEW: central place for reader-driven header toggle
   function toggleHeaderFromReader() {
     if (!header) return;
     var hidden = header.classList.contains("is-hidden");
-
-    // At very top and header is visible -> do NOT hide
-    if (nearTop() && !hidden) {
-      return;
-    }
-
+    // At very top and header visible -> don't hide (so you never lose the UI by accident up top)
+    if (nearTop() && !hidden) return;
     setHeaderHidden(!hidden);
   }
 
@@ -66,7 +60,6 @@
     updateOffset();
     window.addEventListener("resize", updateOffset, {passive:true});
 
-    // Track hide/show state that scroll code in theme.js applies
     var ticking = false;
     window.addEventListener("scroll", function(){
       if (ticking) return;
@@ -80,14 +73,10 @@
     }, {passive:true});
   })();
 
-  // ---------- Tap/Click to toggle UI (header + pill) ----------
-  // Treat it as a tap only if the finger/mouse didn't move much (not a scroll)
-  var tapStartX = 0;
-  var tapStartY = 0;
-  var tapStartTime = 0;
-  var tapMoved = false;
-  var TAP_MAX_MOVE = 12;   // px
-  var TAP_MAX_TIME = 350;  // ms
+  // ---------- Tap/Click to toggle UI ----------
+  var tapStartX = 0, tapStartY = 0, tapStartTime = 0, tapMoved = false;
+  var TAP_MAX_MOVE = 12;
+  var TAP_MAX_TIME = 350;
 
   function isOnReadingSurface(target) {
     return !!(target.closest(".pages") || target.closest(".page"));
@@ -98,7 +87,6 @@
     var t = e.target;
     if (!isOnReadingSurface(t)) return;
     if (isInteractive(t)) return;
-
     var point = e.touches ? e.touches[0] : e;
     tapStartX = point.clientX;
     tapStartY = point.clientY;
@@ -111,25 +99,18 @@
     var point = e.touches ? e.touches[0] : e;
     var dx = Math.abs(point.clientX - tapStartX);
     var dy = Math.abs(point.clientY - tapStartY);
-    if (dx > TAP_MAX_MOVE || dy > TAP_MAX_MOVE) {
-      tapMoved = true;
-    }
+    if (dx > TAP_MAX_MOVE || dy > TAP_MAX_MOVE) tapMoved = true;
   }
 
   function tapUp(e) {
     if (!tapStartTime) return;
-
-    if (e.defaultPrevented) {
-      tapStartTime = 0;
-      return;
-    }
+    if (e.defaultPrevented) { tapStartTime = 0; return; }
 
     var t = e.target;
     var dt = Date.now() - tapStartTime;
     var sel = window.getSelection && window.getSelection().toString();
     tapStartTime = 0;
 
-    // Ignore selections, real controls, and non-page area
     if (isInteractive(t)) return;
     if (!isOnReadingSurface(t)) return;
     if (sel && sel.length > 0) return;
@@ -137,7 +118,6 @@
     var isTap = !tapMoved && dt <= TAP_MAX_TIME;
     if (!isTap) return;
 
-    // use helper with "no hide at top" rule
     toggleHeaderFromReader();
   }
 
@@ -146,12 +126,9 @@
     reader.addEventListener("pointermove", tapMove, { passive: true });
     reader.addEventListener("pointerup", tapUp, { passive: true });
   } else {
-    // Touch devices without PointerEvent
     reader.addEventListener("touchstart", tapDown, { passive: true });
     reader.addEventListener("touchmove", tapMove, { passive: true });
     reader.addEventListener("touchend", tapUp, { passive: true });
-
-    // Desktop click fallback
     reader.addEventListener("click", function (e) {
       if (e.defaultPrevented) return;
       var t = e.target;
@@ -159,49 +136,28 @@
       if (isInteractive(t)) return;
       var sel = window.getSelection && window.getSelection().toString();
       if (sel && sel.length > 0) return;
-
       toggleHeaderFromReader();
     }, { passive: true });
   }
 
-  // ---------- Restore saved scroll position ----------
-  var saved = sessionStorage.getItem(storageKey);
-  if (saved) {
-    setTimeout(function () {
-      var y = parseInt(saved, 10);
-      if (!isNaN(y)) window.scrollTo(0, y);
-    }, 50);
+  // ---------- Chapter-jump dropdown ----------
+  var chapterSelect = document.getElementById("rb-chapter-select");
+  if (chapterSelect) {
+    chapterSelect.addEventListener("change", function () {
+      if (this.value) window.location.href = this.value;
+    });
   }
 
-  // ---------- Save scroll position ----------
-  var saving = false;
-  window.addEventListener("scroll", function () {
-    if (saving) return;
-    saving = true;
-    requestAnimationFrame(function () {
-      try { sessionStorage.setItem(storageKey, String(window.scrollY || 0)); } catch (e) {}
-      saving = false;
-    });
-  }, { passive: true });
+  // ---------- Always start at the first panel (no resume) ----------
+  // (Scroll position is intentionally not saved or restored.)
 
   // ---------- Keyboard navigation ----------
-  function textHas(hay, needles) {
-    hay = (hay || "").toLowerCase();
-    for (var i = 0; i < needles.length; i++) if (hay.indexOf(needles[i]) !== -1) return true;
-    return false;
-  }
   function findNavLink(type) {
-    var byFab = document.querySelector(".fab-btn." + type);
-    if (byFab) return byFab;
-    var links = Array.prototype.slice.call(
-      document.querySelectorAll(".reader-header .nav a, .reader-footer .nav a, .sticky-bar a")
-    );
-    for (var i = 0; i < links.length; i++) {
-      var txt = (links[i].textContent || "").trim();
-      if (type === "prev" && textHas(txt, ["prev", "⟵", "←"])) return links[i];
-      if (type === "next" && textHas(txt, ["next", "⟶", "→"])) return links[i];
+    var bar = document.getElementById("reader-bottombar");
+    if (bar) {
+      var a = bar.querySelector(type === "prev" ? "a.rb-prev" : "a.rb-next");
+      if (a) return a;
     }
-    if (links.length === 2) return type === "prev" ? links[0] : links[1];
     return null;
   }
   function scrollToNextImage() {
@@ -231,11 +187,7 @@
         var nx = findNavLink("next");
         if (nx) nx.click();
       }
-    } else if ((e.key || "").toLowerCase() === "t") {
-      var toggle = document.getElementById("theme-toggle");
-      if (toggle) toggle.click();
     } else if ((e.key || "").toLowerCase() === "h") {
-      // H key uses same rule (no hide at top)
       toggleHeaderFromReader();
     }
   });
@@ -250,40 +202,16 @@
     }, { once: true });
   });
 
-  // --- End-of-chapter card when last page is visible (Option 2) ---
-  var endCard = document.getElementById("reader-end-card");
-  if (endCard && "IntersectionObserver" in window) {
-    var pageEls = reader.querySelectorAll(".page");
-    var lastPage = pageEls[pageEls.length - 1];
-
-    if (lastPage) {
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            endCard.classList.add("is-visible");
-          }
-        });
-      }, {
-        root: null,
-        threshold: 0.35  // show once about 1/3 of the last page is visible
-      });
-
-      io.observe(lastPage);
-    }
-  }
-
-  // --- Tiny floating scroll buttons: back to top / bottom ---
+  // ---------- Tiny floating scroll buttons ----------
   var scrollTools = document.getElementById("reader-scroll-tools");
   if (scrollTools) {
     var btnTop = scrollTools.querySelector(".scroll-btn--top");
     var btnBottom = scrollTools.querySelector(".scroll-btn--bottom");
-
     if (btnTop) {
       btnTop.addEventListener("click", function () {
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
     }
-
     if (btnBottom) {
       btnBottom.addEventListener("click", function () {
         var docHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
