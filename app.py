@@ -179,6 +179,21 @@ def load_updated_manifest() -> dict:
     except Exception:
         return {}
 
+def save_updated_manifest(data: dict) -> None:
+    """Atomically write the updated-times manifest back to disk."""
+    try:
+        UPDATED_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+        tmp = UPDATED_MANIFEST.with_name(UPDATED_MANIFEST.name + ".tmp")
+        with tmp.open("w", encoding="utf-8") as f:
+            yaml.safe_dump(
+                data, f,
+                allow_unicode=True, sort_keys=True, default_flow_style=False
+            )
+        os.replace(tmp, UPDATED_MANIFEST)  # atomic on the same filesystem
+    except Exception:
+        # Never let a manifest write failure break a page render.
+        pass
+
 # ---------- Scanner (cached) ----------
 MANGAS = {}
 LAST_SCAN = 0
@@ -192,6 +207,7 @@ def scan_content():
         return MANGAS
 
     manifest = load_updated_manifest()
+    manifest_changed = False
     mangas = {}
     CONTENT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -224,17 +240,28 @@ def scan_content():
             except Exception:
                 dir_ts = datetime.min
 
-            # manifest time (preferred)
+            # manifest time (preferred — once set, it never drifts)
             man = manifest.get(slug, {})
             updated = parse_iso(man.get(cdir.name))
 
-            # if manifest missing, fallback to newest file mtime (UTC-naïve)
+            # First time we've seen this chapter: stamp it once and freeze it.
+            # We seed from the newest file mtime (best historical guess) so an
+            # existing library keeps sensible dates; brand-new chapters added
+            # later get a mtime ≈ "now", which is exactly their add time.
             if updated == datetime.min:
                 try:
                     newest = max(p.stat().st_mtime for p in img_paths)
                     updated = to_utc_naive(datetime.fromtimestamp(newest, tz=timezone.utc))
                 except Exception:
                     updated = dir_ts
+                if updated == datetime.min:
+                    updated = to_utc_naive(datetime.now(timezone.utc))
+
+                # Persist it so it's stable forever after (survives WebP
+                # conversion, re-copying, moving files, etc.)
+                man[cdir.name] = _utc_aware(updated).replace(microsecond=0).isoformat()
+                manifest[slug] = man
+                manifest_changed = True
 
             chapters.append(Chapter(
                 slug=cdir.name, dirpath=cdir, pages=pages,
@@ -244,6 +271,9 @@ def scan_content():
         # Store ASC internally; we’ll sort per-view as needed
         chapters.sort(key=lambda c: (c.number, c.updated, c.timestamp))
         mangas[slug] = Manga(slug=slug, meta=meta, dirpath=mdir, chapters=chapters)
+
+    if manifest_changed:
+        save_updated_manifest(manifest)
 
     MANGAS = mangas
     LAST_SCAN = now
